@@ -40,13 +40,11 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173"
+      "http://localhost:5173", // local frontend
     ],
     credentials: true,
   })
 );
-
 
 // ✅ Log all requests
 app.use((req, res, next) => {
@@ -116,16 +114,10 @@ cron.schedule(
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173"
-    ],
-    methods: ["GET", "POST", "PUT", "OPTIONS"],
-    credentials: true,
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST", "PUT"],
   },
-  transports: ["websocket", "polling"],
 });
-
 app.set("io", io);
 
 // ✅ Track connected doctors for real-time updates
