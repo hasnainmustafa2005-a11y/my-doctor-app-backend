@@ -36,15 +36,26 @@ import checkoutRoutes from "./routes/checkout.js";
 dotenv.config();
 const app = express();
 
+
+// CORS allowed origins
+const allowedOrigins = [
+  "http://localhost:5173",            // local frontend
+  process.env.FRONTEND_URL,           // deployed frontend
+].filter(Boolean);
+
+
 // ✅ CORS
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173", // local frontend
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS not allowed from this origin"), false);
+    }
+  },
+  credentials: true,
+}));
 
 // ✅ Log all requests
 app.use((req, res, next) => {
@@ -114,8 +125,9 @@ cron.schedule(
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT"],
+    credentials: true,
   },
 });
 app.set("io", io);
