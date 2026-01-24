@@ -34,25 +34,17 @@ import stripeWebhookRoutes from "./routes/stripeWebhook.js";
 import checkoutRoutes from "./routes/checkout.js";
 
 dotenv.config();
-
-
 const app = express();
 
-const FRONTEND_ORIGIN =
-  process.env.FRONTEND_URL || "http://localhost:5173";
 // ✅ CORS
 app.use(
   cors({
-    origin: FRONTEND_ORIGIN,
+    origin: [
+      "http://localhost:5173", // local frontend
+    ],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// ✅ Handle preflight requests explicitly
-app.options("*", cors());
-
 
 // ✅ Log all requests
 app.use((req, res, next) => {
