@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+
+# uploads / temp (optional but recommended)
+uploads/
+tempPDFs/
+
+# logs
+npm-debug.log*
