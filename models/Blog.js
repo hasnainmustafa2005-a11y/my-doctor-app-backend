@@ -5,14 +5,15 @@ const blogSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
     content: {
       type: String,
       required: true,
     },
     image: {
-      type: String,
-      default: "",
+      type: String, // BASE64 string
+      required: true,
     },
     author: {
       type: String,

@@ -1,40 +1,31 @@
 import express from "express";
-import multer from "multer";
-import path from "path";
 import Blog from "../models/Blog.js";
 
 const router = express.Router();
 
-// 🗂️ Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${file.fieldname}${ext}`);
-  },
-});
-
-const upload = multer({ storage });
-
 /* =========================
    CREATE BLOG
 ========================= */
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
+    const { title, content, image } = req.body;
+
+    if (!title || !content || !image) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
     const blog = new Blog({
-      title: req.body.title,
-      content: req.body.content,
-      author: req.body.author || "Admin",
-      image: imagePath,
+      title,
+      content,
+      image, // BASE64
+      author: "Admin",
     });
 
     await blog.save();
     res.status(201).json(blog);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -46,51 +37,31 @@ router.get("/", async (req, res) => {
     const blogs = await Blog.find().sort({ createdAt: -1 });
     res.json(blogs);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
-  }
-});
-
-/* =========================
-   GET SINGLE BLOG
-========================= */
-router.get("/:id", async (req, res) => {
-  try {
-    const blog = await Blog.findById(req.params.id);
-
-    if (!blog) {
-      return res.status(404).json({ message: "Blog not found" });
-    }
-
-    res.json(blog);
-  } catch (err) {
-    res.status(500).json({ error: "Invalid blog ID" });
   }
 });
 
 /* =========================
    UPDATE BLOG
 ========================= */
-router.put("/:id", upload.single("image"), async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title,
-      content: req.body.content,
-      author: req.body.author,
-    };
+    const { title, content, image } = req.body;
 
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
-    }
+    const updateData = { title, content };
+    if (image) updateData.image = image;
 
-    const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+    });
 
-    if (!blog) {
-      return res.status(404).json({ message: "Blog not found" });
-    }
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
 
     res.json(blog);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -99,14 +70,11 @@ router.put("/:id", upload.single("image"), async (req, res) => {
 ========================= */
 router.delete("/:id", async (req, res) => {
   try {
-    const deletedBlog = await Blog.findByIdAndDelete(req.params.id);
-
-    if (!deletedBlog) {
-      return res.status(404).json({ message: "Blog not found" });
-    }
-
+    const blog = await Blog.findByIdAndDelete(req.params.id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
     res.json({ message: "Blog deleted" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
