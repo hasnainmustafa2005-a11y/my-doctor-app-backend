@@ -36,26 +36,29 @@ import checkoutRoutes from "./routes/checkout.js";
 dotenv.config();
 const app = express();
 
-
-// CORS allowed origins
+// ✅ CORS
 const allowedOrigins = [
-  "http://localhost:5173",            // local frontend
-  process.env.FRONTEND_URL,           // deployed frontend
+  "http://localhost:5173",
+  "https://app-32e4fe12-4024-4196-b4e0-f15b38b4d808.cleverapps.io",
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
 
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (like curl, health checks)
+      if (!origin) return callback(null, true);
 
-// ✅ CORS
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error("CORS not allowed from this origin"), false);
-    }
-  },
-  credentials: true,
-}));
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
+
 
 // ✅ Log all requests
 app.use((req, res, next) => {
@@ -130,6 +133,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
 app.set("io", io);
 
 // ✅ Track connected doctors for real-time updates
