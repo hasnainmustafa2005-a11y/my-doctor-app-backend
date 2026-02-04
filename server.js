@@ -41,6 +41,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://connectdoc.ie", 
   "https://funny-stardust-7c04b7.netlify.app",
+  "https://www.connectdoc.ie",
   "https://app-32e4fe12-4024-4196-b4e0-f15b38b4d808.cleverapps.io",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
