@@ -73,10 +73,28 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     const doctor = await Doctor.findOne({ email: email.toLowerCase() });
-    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found"
+      });
+    }
+
+    // 🚫 BLOCK INACTIVE DOCTORS
+    if (doctor.status !== "Active") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is deactivated. Please contact admin."
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, doctor.password);
-    if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -99,9 +117,13 @@ router.post("/login", async (req, res) => {
 
   } catch (err) {
     console.error("❌ LOGIN ERROR:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 });
+
 router.post("/verify-otp", async (req, res) => {
   try {
     const { doctorId, otp } = req.body;

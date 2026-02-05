@@ -33,11 +33,10 @@ export const generateDoctorToken = (doctor) => {
  * 🛡️ Middleware: Verify Doctor JWT
  * Protects routes that require doctor authentication
  */
-export const verifyDoctorToken = (req, res, next) => {
+export const verifyDoctorToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || req.headers.Authorization;
 
-    // 🧩 Check if header exists and starts correctly
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -46,16 +45,38 @@ export const verifyDoctorToken = (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-    if (!token)
-      return res
-        .status(401)
-        .json({ success: false, message: "Token missing in authorization header" });
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token missing in authorization header",
+      });
+    }
 
-    // 🧠 Verify token
+    // 🔐 Verify JWT
     const decoded = jwt.verify(token, secret);
-    req.doctor = decoded; // attach payload { doctorId, name, email }
 
+    // 🔎 Fetch doctor from DB
+    const doctor = await Doctor.findById(decoded.doctorId).select("status name email");
+
+    if (!doctor) {
+      return res.status(401).json({
+        success: false,
+        message: "Doctor account not found.",
+      });
+    }
+
+    // 🚫 BLOCK INACTIVE DOCTORS
+    if (doctor.status !== "Active") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is deactivated. Access denied.",
+      });
+    }
+
+    // ✅ Attach full doctor info
+    req.doctor = doctor;
     next();
+
   } catch (err) {
     console.error("❌ JWT Verification Error:", err.message);
 
