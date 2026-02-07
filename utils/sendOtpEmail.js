@@ -3,39 +3,39 @@ import nodemailer from "nodemailer";
 const sendOtpEmail = async (toEmail, otp) => {
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail", // or Outlook, etc.
+      host: "smtp.zoho.eu", // Zoho SMTP host for EU (use smtp.zoho.com for US)
+    port: 587, // TLS port
+    secure: false, // or Outlook, etc.
       auth: {
         user: process.env.EMAIL_USER, // your email
         pass: process.env.EMAIL_PASS, // app password
       },
     });
 
- const mailOptions = {
+const mailOptions = {
   from: `"ConnectDoc Telehealth" <${process.env.EMAIL_USER}>`,
   to: toEmail,
-  subject: "Your One-Time Login Code (OTP)",
-  html: `
-    <div style="font-family: 'Helvetica', Arial, sans-serif; color: #333; line-height: 1.6;">
-      <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px; background-color: #f9f9f9;">
-        <h2 style="color: #4f46e5; text-align: center;">ConnectDoc Telehealth</h2>
-        <p style="text-align: center; font-size: 16px;">Hello,</p>
-        <p style="text-align: center; font-size: 16px;">You requested to log in to your ConnectDoc account. Use the One-Time Password (OTP) below to proceed:</p>
-        
-        <h1 style="text-align: center; letter-spacing: 5px; font-size: 32px; color: #1f2937; margin: 20px 0;">${otp}</h1>
+  subject: `${otp} is your ConnectDoc verification code`,
+  text: `
+ConnectDoc Telehealth
+---------------------------------------
 
-        <p style="text-align: center; font-size: 14px; color: #6b7280;">
-          This OTP is valid for <b>2 minutes</b>. Please do not share it with anyone.
-        </p>
+Hello,
 
-        <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 30px;">
-          If you did not request this code, you can safely ignore this email.
-        </p>
+To complete your login, please enter the following verification code on the login screen:
 
-        <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 20px;">
-          — ConnectDoc Telehealth Team
-        </p>
-      </div>
-    </div>
+VERIFICATION CODE: ${otp}
+
+This code is valid for 2 minutes and can only be used once.
+
+Security Note:
+For your protection, never share this code with anyone. ConnectDoc support will never ask for this code over the phone or via email. If you did not request this code, please ignore this message or contact our security team if you have concerns.
+
+Thank you,
+The ConnectDoc Team
+https://www.connectdoc.example (Replace with your actual URL)
+
+© ${new Date().getFullYear()} ConnectDoc Telehealth. All rights reserved.
   `,
 };
 

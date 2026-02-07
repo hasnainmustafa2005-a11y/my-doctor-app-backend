@@ -15,6 +15,14 @@ const blogSchema = new mongoose.Schema(
       type: String, // BASE64 string
       required: true,
     },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      // Optional: Add common categories to prevent errors
+      enum: ["Women's Health", "Mental Health", "General Consultation", "Dermatology", "Others"],
+      default: "Others"
+    },
     author: {
       type: String,
       default: "Admin",

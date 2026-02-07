@@ -44,7 +44,9 @@ router.post("/send-pdf", async (req, res) => {
 
     // Send email to admin (still OK)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+       host: "smtp.zoho.eu", // Zoho SMTP host for EU (use smtp.zoho.com for US)
+    port: 587, // TLS port
+    secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -52,7 +54,7 @@ router.post("/send-pdf", async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: `"Telehealth Team" <${process.env.EMAIL_USER}>`,
+      from: `"ConnectDoc Admin Portal" <${process.env.EMAIL_USER}>`,
       to: process.env.CLIENT_EMAIL,
       subject: `New ${subCategory || "Health"} Consultation Submitted (Pending Payment)`,
       text: `A new consultation form has been submitted.
@@ -62,8 +64,6 @@ Email: ${email}
 Phone: ${phone}
 Category: ${category}
 Subcategory: ${subCategory}
-
-⚠️ Payment status: PENDING
 `,
       attachments: [
         {
@@ -380,9 +380,5 @@ router.put("/forms/:id/toggle-status", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
-
-
-
 
 export default router;

@@ -32,6 +32,10 @@ import dateOverrideRoutes from "./routes/dateOverrideRoutes.js";
 import timingsRouter from "./routes/timings.js";
 import stripeWebhookRoutes from "./routes/stripeWebhook.js";
 import checkoutRoutes from "./routes/checkout.js";
+import contactRoutes from "./routes/contact.js";
+
+
+
 
 dotenv.config();
 const app = express();
@@ -95,6 +99,7 @@ app.use("/uploads", express.static(path.join(fileURLToPath(import.meta.url), "up
 app.use("/api/doctor-analytics", adminDoctorRoutes);
 app.use("/api/date-overrides", dateOverrideRoutes);
 app.use("/api/timings", timingsRouter);
+app.use("/api", contactRoutes);
 
 // ✅ Connect to MongoDB
 mongoose

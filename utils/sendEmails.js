@@ -2,51 +2,50 @@ import nodemailer from "nodemailer";
 
 const sendEmail = async (to, subject, otp) => {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.zoho.eu", 
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-  // HTML content for OTP email
-  const htmlContent = `
-  <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f9fafb;">
-    <h2 style="color: #1e3a8a; text-align: center;">ConnectDoc Admin Portal</h2>
-    <p style="text-align: center; color: #374151;">Hello Admin,</p>
-    <p style="color: #374151; line-height: 1.6;">
-      You requested a one-time password (OTP) to access your admin dashboard. Use the code below to login securely:
-    </p>
+  // Professional Plain-Text Content
+  const textContent = `
+CONNECTDOC ADMIN PORTAL
+---------------------------------------
 
-    <div style="text-align: center; margin: 20px 0;">
-      <span style="display: inline-block; font-size: 32px; font-weight: bold; color: #1e3a8a; background-color: #dbeafe; padding: 10px 20px; border-radius: 8px; letter-spacing: 4px;">
-        ${otp}
-      </span>
-    </div>
+Hello Admin,
 
-    <p style="color: #6b7280; line-height: 1.6;">
-      This OTP is valid for <strong>10 minutes</strong>. Do not share it with anyone.
-    </p>
+A login attempt to your ConnectDoc Admin Dashboard was initiated. 
+Please use the One-Time Password (OTP) below to authenticate:
 
-    <p style="color: #374151; line-height: 1.6;">
-      If you did not request this, please ignore this email.
-    </p>
+ADMIN ACCESS CODE: ${otp}
 
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+This code is valid for 10 minutes.
 
-    <p style="text-align: center; color: #6b7280; font-size: 12px;">
-      ConnectDoc - Telehealth Admin Portal<br />
-      &copy; ${new Date().getFullYear()} ConnectDoc. All rights reserved.
-    </p>
-  </div>
+For security reasons, do not share this code with anyone. If you did not initiate this login request, please contact your IT security administrator immediately.
+
+Best regards,
+ConnectDoc Security Team
+
+---------------------------------------
+© ${new Date().getFullYear()} ConnectDoc Telehealth. All rights reserved.
   `;
 
-  await transporter.sendMail({
-    from: `"ConnectDoc Admin Portal" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html: htmlContent,
-  });
+  try {
+    await transporter.sendMail({
+      from: `"ConnectDoc Admin Portal" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: `[Admin Security] ${otp} is your verification code`,
+      text: textContent, // Only sending text version
+    });
+    console.log("📧 Admin OTP email sent successfully");
+  } catch (error) {
+    console.error("❌ Admin Email failed:", error);
+    throw error;
+  }
 };
 
 export default sendEmail;
