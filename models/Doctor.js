@@ -77,8 +77,8 @@ const doctorSchema = new mongoose.Schema(
     },
 
     // 🔐 OTP fields (temporary)
-    otp: { type: String },
-    otpExpiry: { type: Date },
+    otp: { type: String, default: null },
+  otpExpiry: { type: Date, default: null },
 
     availability: [availabilitySchema],
     monthlyAvailability: [monthlyAvailabilitySchema],

@@ -54,18 +54,26 @@ router.post("/seed", async (req, res) => {
 });
 
 // GET /api/timings/public
+// GET /api/timings/public
 router.get("/public", async (req, res) => {
   try {
     const timings = await Timing.find();
 
+    // 1. Filter each group individually
     const weekdays = timings.filter(t => ["Monday","Tuesday","Wednesday","Thursday","Friday"].includes(t.day));
-    const weekend = timings.filter(t => ["Saturday","Sunday"].includes(t.day));
+    const saturday = timings.find(t => t.day === "Saturday");
+    const sunday = timings.find(t => t.day === "Sunday");
 
-    const format = (arr, label) => arr.length ? { label, startTime: arr[0].startTime, endTime: arr[0].endTime } : null;
+    // Helper to format the range
+    const formatRange = (t, label) => t ? { label, startTime: t.startTime, endTime: t.endTime } : null;
+    
+    // Helper for weekdays (takes the first one found to represent the group)
+    const formatGroup = (arr, label) => arr.length ? { label, startTime: arr[0].startTime, endTime: arr[0].endTime } : null;
 
     res.json({
-      weekdays: format(weekdays, "Mon-Fri"),
-      weekend: format(weekend, "Sat-Sun"),
+      weekdays: formatGroup(weekdays, "Mon-Fri"),
+      saturday: formatRange(saturday, "Saturday"),
+      sunday: formatRange(sunday, "Sunday"),
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch public timings", error: err.message });

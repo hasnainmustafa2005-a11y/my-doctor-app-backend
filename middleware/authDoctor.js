@@ -1,6 +1,7 @@
 // middleware/authDoctor.js
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import Doctor from "../models/Doctor.js";
 dotenv.config();
 const secret = process.env.JWT_SECRET;
 
