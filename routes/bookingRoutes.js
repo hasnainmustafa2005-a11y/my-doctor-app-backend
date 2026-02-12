@@ -109,12 +109,27 @@ router.post("/book", async (req, res) => {
 
     const savedBooking = await newBooking.save();
 
+
     // ✅ Step 4: Decrement slot remaining
     slot.remaining -= 1;
     await slot.save();
-
+if (assignedDoctor && assignedDoctor._id) {
+      try {
+        // Option A: Use your helper function (Recommended if notifyDoctor is updated to use rooms)
+        notifyDoctor(assignedDoctor._id.toString(), savedBooking);
+        
+        // Option B: Fallback manual emit (Only if notifyDoctor isn't working)
+        // const io = req.app.get("io");
+        // io.to(assignedDoctor._id.toString()).emit("newBooking", savedBooking);
+        
+        console.log(`🚀 Live broadcast sent to Doctor ID: ${assignedDoctor._id}`);
+      } catch (err) {
+        console.warn("⚠️ Socket notification failed:", err.message);
+      }
+    }
     // ✅ Step 5: Emit socket
     const io = req.app.get("io");
+
     io.emit("slot-updated", slot);
 
     // ✅ Step 6: Response
@@ -192,13 +207,12 @@ router.put("/assign/:id", async (req, res) => {
     await booking.save();
 
     // Optional: notify doctor
-    if (typeof notifyDoctor === "function") {
-      try {
-        notifyDoctor(doctor._id, booking);
-      } catch (e) {
-        console.warn("⚠️ Notification failed:", e.message);
-      }
-    }
+  try {
+    notifyDoctor(doctor._id.toString(), booking);
+    console.log(`✅ Real-time alert sent to doctor ${doctor.name}`);
+  } catch (e) {
+    console.warn("⚠️ Notification failed:", e.message);
+  }
 
     res.json({
       success: true,

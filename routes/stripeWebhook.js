@@ -16,13 +16,11 @@ async function findAvailableDoctor(dateStr, timeStr) {
   const bookingDate = new Date(dateStr);
   const dayOfWeek = bookingDate.toLocaleDateString("en-US", { weekday: "long" });
 
-  // 1️⃣ Get all active doctors
   const doctors = await Doctor.find({ status: "Active" });
 
   for (const doc of doctors) {
     let isAvailable = false;
 
-    // 2️⃣ Check monthly availability first
     for (const month of doc.monthlyAvailability) {
       if (
         month.year === bookingDate.getFullYear() &&
@@ -37,7 +35,6 @@ async function findAvailableDoctor(dateStr, timeStr) {
       }
     }
 
-    // 3️⃣ Fallback to weekly availability
     if (!isAvailable && doc.availability?.length) {
       const weekly = doc.availability.find(d => d.day === dayOfWeek);
       if (weekly && timeStr >= weekly.startTime && timeStr < weekly.endTime) {
@@ -47,7 +44,6 @@ async function findAvailableDoctor(dateStr, timeStr) {
 
     if (!isAvailable) continue;
 
-    // 4️⃣ Check if doctor already has booking at same date + time
     const existingBooking = await Booking.findOne({
       doctorId: doc._id,
       date: dateStr,
@@ -56,8 +52,7 @@ async function findAvailableDoctor(dateStr, timeStr) {
 
     if (!existingBooking) return doc._id.toString();
   }
-
-  return null; // No available doctor
+  return null;
 }
 
 /**
@@ -82,16 +77,13 @@ router.post(
     }
 
     try {
-      /* ===============================
-         ✅ PAYMENT SUCCESS
-      ================================ */
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
         const paymentIntentId = session.payment_intent;
         const metadata = session.metadata || {};
 
         /* -------------------------------
-           🔵 BOOKING PAYMENT
+            🔵 BOOKING PAYMENT
         -------------------------------- */
         if (metadata.type === "BOOKING") {
           const existingBooking = await Booking.findOne({
@@ -128,11 +120,12 @@ router.post(
             );
           }
 
-          const booking = await Booking.create({
+          // ✅ CREATE BOOKING
+          const bookingData = await Booking.create({
             userId: metadata.userId || null,
             doctorId: assignedDoctorId,
             userName: metadata.userName,
-            userEmail: session.customer_email,
+            userEmail: session.customer_email || metadata.userEmail,
             phone: metadata.phone,
             dob: metadata.dob,
             address: metadata.address,
@@ -146,15 +139,30 @@ router.post(
             assignedAutomatically: !metadata.doctorId && !!assignedDoctorId,
           });
 
-          if (booking.doctorId) {
-            notifyDoctor(booking.doctorId.toString(), booking);
+          // 🛠 POPULATE DOCTOR INFO FOR DASHBOARD
+          // This ensures the admin sees the name immediately without refreshing
+          const fullBooking = await Booking.findById(bookingData._id)
+            .populate("doctorId")
+            .lean();
+
+          // 🔥 REAL-TIME UPDATE
+          const io = req.app.get("io");
+          if (io) {
+            // Emitting "bookingUpdated" to match your Dashboard's listener
+            io.emit("bookingUpdated", fullBooking); 
+            // Update slot count for the booking UI
+            io.emit("slot-updated", slot);
           }
 
-          console.log("✅ Booking created & paid");
+          if (fullBooking.doctorId) {
+            notifyDoctor(fullBooking.doctorId._id.toString(), fullBooking);
+          }
+
+          console.log("✅ Booking created and broadcasted");
         }
 
         /* -------------------------------
-           🟢 FORM PAYMENT
+            🟢 FORM PAYMENT
         -------------------------------- */
         if (metadata.type === "FORM") {
           const existingForm = await Form.findOne({
@@ -177,39 +185,35 @@ router.post(
       }
 
       /* ===============================
-         🔁 REFUND HANDLING
+          🔁 REFUND HANDLING
       ================================ */
-     if (event.type === "charge.refunded") {
-  const charge = event.data.object;
-  const paymentIntentId = charge.payment_intent;
+      if (event.type === "charge.refunded") {
+        const charge = event.data.object;
+        const paymentIntentId = charge.payment_intent;
 
-  // 1️⃣ Handle BOOKING refund
-  const booking = await Booking.findOne({ paymentId: paymentIntentId });
-  if (booking) {
-    // 🔹 Update status and paymentStatus
-    booking.paymentStatus = "Refunded";  // Must match enum in Booking
-    booking.status = "Refunded";
+        const booking = await Booking.findOne({ paymentId: paymentIntentId });
+        if (booking) {
+          booking.paymentStatus = "Refunded";  
+          booking.status = "Refunded";
 
-    // 🔹 Restore slot if exists
-    const slot = await TimeSlot.findOne({
-      date: booking.date,
-      time: booking.time,
-    });
-    if (slot) {
-      slot.remaining += 1;
-      await slot.save();
-    }
+          const slot = await TimeSlot.findOne({
+            date: booking.date,
+            time: booking.time,
+          });
+          if (slot) {
+            slot.remaining += 1;
+            await slot.save();
+          }
 
-    // 🔹 Auto-unassign doctor
-    booking.doctorId = null;
-    booking.assignedAutomatically = false;
+          booking.doctorId = null;
+          booking.assignedAutomatically = false;
+          await booking.save();
+          
+          // Notify dashboard of the refund
+          const io = req.app.get("io");
+          if (io) io.emit("bookingUpdated", booking);
+        }
 
-    await booking.save();
-
-    console.log(`✅ Booking refunded, slot restored, doctor unassigned: ${booking._id}`);
-  }
-
-        // 🔴 Update form
         await Form.findOneAndUpdate(
           { stripePaymentIntentId: paymentIntentId },
           { paymentStatus: "refunded" }

@@ -147,12 +147,16 @@ app.set("io", io);
 
 // ✅ Track connected doctors for real-time updates
 const connectedDoctors = new Map();
+// ✅ TRACKING LOGIC UPDATED TO USE ROOMS
 io.on("connection", (socket) => {
   console.log("🟢 Socket connected:", socket.id);
 
   socket.on("registerDoctor", (doctorId) => {
-    connectedDoctors.set(doctorId, socket.id);
-    console.log(`👨‍⚕️ Doctor ${doctorId} registered with socket ${socket.id}`);
+    if (doctorId && doctorId !== "null") {
+      // 1. Join a private room for this doctor
+      socket.join(doctorId.toString());
+      console.log(`👨‍⚕️ Doctor ${doctorId} joined private room: ${doctorId}`);
+    }
   });
 
   socket.on("adminUpdatedSlot", (updatedSlot) => {
@@ -165,26 +169,22 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("🔴 Socket disconnected:", socket.id);
-    for (const [doctorId, id] of connectedDoctors.entries()) {
-      if (id === socket.id) {
-        connectedDoctors.delete(doctorId);
-        console.log(`🗑️ Removed doctor ${doctorId} from online list`);
-      }
-    }
   });
 });
 
 // ✅ Notify a doctor about new booking
+// ✅ Notify a doctor about new booking (ROOM VERSION)
 export const notifyDoctor = (doctorId, booking) => {
-  const doctorSocketId = connectedDoctors.get(doctorId);
-  if (doctorSocketId) {
-    io.to(doctorSocketId).emit("newBooking", booking);
-    console.log(`📨 Sent new booking to doctor ${doctorId}`);
+  if (doctorId) {
+    const roomName = doctorId.toString();
+    // Use io.to() to send to the room. 
+    // This works even if the doctor has multiple tabs open!
+    io.to(roomName).emit("newBooking", booking);
+    console.log(`📨 Sent new booking to Doctor Room: ${roomName}`);
   } else {
-    console.log(`⚠️ Doctor ${doctorId} not online`);
+    console.log(`⚠️ Cannot notify: No Doctor ID provided`);
   }
 };
-
 // ✅ Health check
 app.get("/", (req, res) => res.send("🚀 ConnectDoc Backend Running..."));
 
