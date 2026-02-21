@@ -42,6 +42,15 @@ router.post("/send-pdf", async (req, res) => {
 
     await newForm.save();
 
+    const io = req.app.get("io"); // Get the socketio instance from app
+    if (io) {
+      io.emit("formUpdated", { 
+        message: "New Prescription Form Submitted", 
+        formId: newForm._id 
+      });
+      console.log("📡 Socket emitted: formUpdated");
+    }
+
     // Send email to admin (still OK)
     const transporter = nodemailer.createTransport({
        host: "smtp.zoho.eu", // Zoho SMTP host for EU (use smtp.zoho.com for US)
